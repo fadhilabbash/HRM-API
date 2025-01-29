@@ -103,39 +103,48 @@ class EmployeeController extends Controller
     public function update(EditEmployeeRequest $request, $id)
     {
         $employee = Employee::find($id);
-
+    
         if (!$employee) {
             return $this->notFoundResponse(null, 'الموظف غير موجود');
         }
-
+    
         $validatedData = $request->validated();
-
-        // Handle image upload
+    
+        // Handle image upload or deletion
         if ($request->hasFile('image')) {
             $image = $request->file('image');
             $imageName = time() . '_' . $image->getClientOriginalName();
             $validatedData['image'] = $image->storeAs('uploads/employees/images', $imageName, 'public');
-
+    
             if ($employee->image) {
                 Storage::disk('public')->delete($employee->image);
             }
+        } elseif ($request->input('image') === null && $employee->image) {
+            // Delete the existing image if no new image is provided
+            Storage::disk('public')->delete($employee->image);
+            $validatedData['image'] = null; // Ensure the image field is set to null in the database
         }
-
-        // Handle file upload
+    
+        // Handle file upload or deletion
         if ($request->hasFile('file')) {
             $file = $request->file('file');
             $fileName = time() . '_' . $file->getClientOriginalName();
             $validatedData['file'] = $file->storeAs('uploads/employees/files', $fileName, 'public');
-
+    
             if ($employee->file) {
                 Storage::disk('public')->delete($employee->file);
             }
+        } elseif ($request->input('file') === null && $employee->file) {
+            // Delete the existing file if no new file is provided
+            Storage::disk('public')->delete($employee->file);
+            $validatedData['file'] = null; // Ensure the file field is set to null in the database
         }
-
+    
         $employee->update($validatedData);
-
+    
         return $this->okResponse(new EmployeeResource($employee), 'تم التعديل بنجاح');
     }
+    
 
 
     /**
